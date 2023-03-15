@@ -11,9 +11,6 @@ ARG SESSION_MANAGER_PLUGIN_VERSION=latest
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-# Multi platform support - override this arg with `arm64` string to build for Mac m1 for example
-ARG ARCH=amd64
-
 # Helm plugins:
 # https://github.com/databus23/helm-diff/releases
 ARG HELM_DIFF_VERSION=3.6.0
@@ -31,10 +28,6 @@ ARG PYTHON_VERSION=3.10.8
 # Debian comes with minimal Locale support. See https://github.com/docker-library/docs/pull/703/files
 # Recommended: LC_ALL=C.UTF-8
 ENV LC_ALL=C.UTF-8
-
-# Multi platform support - override this arg with `arm64` string to build for Mac m1 for example
-ARG ARCH=amd64
-ENV ARCH=${ARCH}
 
 # Once again, Debian is weird. Package-installed Python is system-only, and does not
 # play well with pip. See  https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=765022#30
@@ -78,9 +71,8 @@ RUN find / -name __pycache__ -exec rm -rf {} \; -prune
 #
 FROM debian:$DEBIAN_VERSION
 
-# Multi platform support - override this arg with `arm64` string to build for Mac m1 for example
-ARG ARCH=amd64
-ENV ARCH=${ARCH}
+# Multi platform support - the value of this arg is set by docker buildkit automatically.
+ARG TARGETARCH
 
 ARG VERSION
 ENV GEODESIC_VERSION=$VERSION
@@ -139,7 +131,7 @@ RUN curl -1sLf 'https://packages.cloud.google.com/apt/doc/apt-key.gpg' | APT_KEY
 
 # If runnig Dokcer build on Macos m1:
 # Since the packages are not available for arm64 let's build them using sources from Cloudposse's `package` repository
-RUN if [ "$ARCH" = "arm64" ] ; then \
+RUN if [ "${TARGETARCH}" = "arm64" ] ; then \
         # Install commonly known packages from public Debian repo
         apt-get update && apt-get install -y $(grep -h -v '^#' /etc/apt/packages.txt /etc/apt/packages-debian.txt | sed -E '/@(cloudposse|testing)/d' | sed -E 's/@community//g') && \
         git clone https://github.com/cloudposse/packages.git && \
@@ -150,7 +142,7 @@ RUN if [ "$ARCH" = "arm64" ] ; then \
         make -C install $(grep -h -v '^#' /etc/apt/packages.txt /etc/apt/packages-debian.txt | sed -nE 's/[@]?[a-zA-Z0-9]*_amd64//pg') ARCH=amd64 && \
         # The `-slim` version of gomplate is not available for ARM 64 so we have to alter the DOWNLOAD_URL as the one in
         # `packages` repo is not compatible.
-        make -C install gomplate DOWNLOAD_URL='$(PACKAGE_REPO_URL)/releases/download/v$(PACKAGE_VERSION)/$(PACKAGE_NAME)_$(OS)-$(ARCH)' ; \
+        make -C install gomplate DOWNLOAD_URL='$(PACKAGE_REPO_URL)/releases/download/v$(PACKAGE_VERSION)/$(PACKAGE_NAME)_$(OS)-$(TARGETARCH)' ; \
     # On any other architecture proceed as usual. Packages will come from `https://dl.cloudsmith.io/public/cloudposse/packages/deb/debian bullseye main` repo.
     else \
         apt-get update && apt-get install -y \
@@ -184,8 +176,8 @@ RUN { gcloud config set core/disable_usage_reporting true --installation && \
 # "locales" package and run the following command:
 # RUN localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 
-# This directory doesn't exist on arm64 I guess because the next command throws an error "Directory doesn't exist" so let's make it. 
-RUN if [ "$ARCH" = "arm64" ] ; then mkdir -p /etc/sysctl.d ; fi
+# This directory doesn't exist on arm64 I guess because the next command throws an error "Directory doesn't exist" so let's make it.
+RUN if [ "${TARGETARCH}" = "arm64" ] ; then mkdir -p /etc/sysctl.d ; fi
 
 RUN echo "net.ipv6.conf.all.disable_ipv6=0" > /etc/sysctl.d/00-ipv6.conf
 
@@ -317,7 +309,7 @@ RUN mv /usr/local/bin/aws /usr/local/bin/aws1 && \
 # ARG AWS_CLI_VERSION=2.2.8
 RUN AWSTMPDIR=$(mktemp -d -t aws-inst-XXXXXXXXXX) && \
     # We have to use platform-specific binary
-    if [ "$ARCH" = "arm64" ] ; then \
+    if [ "${TARGETARCH}" = "arm64" ] ; then \
         export AWS_ARCH='aarch64' ; \
     else \
         export AWS_ARCH='x86_64' ; \
@@ -343,7 +335,7 @@ ENV AWS_PAGER="less -FRX"
 
 # Install AWS Session Manager Plugin
 ARG SESSION_MANAGER_PLUGIN_VERSION
-RUN if [ "$ARCH" = "arm64" ] ; then \
+RUN if [ "${TARGETARCH}" = "arm64" ] ; then \
         export  SESSION_MANAGER_PLUGIN_ARCH='arm64' ; \
     else \
         export SESSION_MANAGER_PLUGIN_ARCH='64bit' ; \
@@ -368,7 +360,7 @@ COPY docs/ /usr/share/docs/
 # Build man pages
 
 ## This throws error `#49 0.196 /bin/sh: 1: /usr/local/bin/docs: not found` on Mac m1 and I can't figure out why...
-RUN if [ "$ARCH" != "arm64" ]; then /usr/local/bin/docs update; fi
+RUN if [ "${TARGETARCH}" != "arm64" ]; then /usr/local/bin/docs update; fi
 
 # Make sure that "user specific" directories we are sharing
 # are in fact available to all users
