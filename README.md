@@ -1,3 +1,7 @@
+# ARCHIVE INFORMATION
+> [!IMPORTANT]
+> Due to lack of usage and maintenance, this repository has been archived.  
+> Please read the [repository archival FAQ](https://docs.corp.spoton.sh/developer/undocumented-repositories-archival-faq/) for more information!
 
 <!-- markdownlint-disable -->
 # Geodesic [![Build Status](https://github.com/cloudposse/geodesic/workflows/docker/badge.svg)](https://github.com/cloudposse/geodesic/actions?query=workflow%3Adocker) [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fcloudposse%2Fgeodesic.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fcloudposse%2Fgeodesic?ref=badge_shield) [![Latest Release](https://img.shields.io/github/release/cloudposse/geodesic.svg)](https://github.com/cloudposse/geodesic/releases/latest) [![Slack Community](https://slack.cloudposse.com/badge.svg)](https://slack.cloudposse.com) [![Slack Archive](https://img.shields.io/badge/slack-archive-blue.svg)](https://archive.sweetops.com/geodesic)
